@@ -1,5 +1,7 @@
 
 <img src="./whatsON-logo.png" width="100" height="100">
+# this is test branch used for testing the buildtool
+It may be rebased and forced pushed/changed/deleted. Don't use for anything you care about.
 
 # whatsON
 
