@@ -17,6 +17,10 @@ pipeline {
       }
     }
 
+  options {
+    disableConcurrentBuilds()
+  }
+
     stage('Build') {
       steps {
         stepMSBuild(project: 'src/Soloplan.WhatsON.sln', outputDir: outputDir)
