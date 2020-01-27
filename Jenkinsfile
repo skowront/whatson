@@ -10,16 +10,16 @@ pipeline {
     label 'dotnet-framework'
   } 
 
+  options {
+    disableConcurrentBuilds()
+  }
+  
   stages {
     stage('Agent info') {
       steps {
         stepAgentInfo()
       }
     }
-
-  options {
-    disableConcurrentBuilds()
-  }
 
     stage('Build') {
       steps {
