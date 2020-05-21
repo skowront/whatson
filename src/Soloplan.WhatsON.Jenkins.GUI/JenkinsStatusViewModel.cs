@@ -84,5 +84,17 @@ namespace Soloplan.WhatsON.Jenkins.GUI
 
       this.UpdateCalculatedFields();
     }
+
+    public virtual bool IsBuildInformationDisplayable()  
+    { 
+      if (this.Culprits.Count <= 0 && this.CommittedToThisBuild.Count <= 0)
+      {
+        return false;
+      }
+      else
+      {
+        return true;
+      }
+    }
   }
 }
