@@ -35,11 +35,11 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
             {
               new AdaptiveText()
               {
-                Text = "Empty Notification"
+                Text = "Empty Notification",
               },
-            }
-          }
-        }
+            },
+          },
+        },
       };
 
       return content;
@@ -83,17 +83,6 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
           {
             Children =
             {
-              new AdaptiveText()
-              {
-                Text = connectorViewModel.Name,
-                HintStyle = AdaptiveTextStyle.Header,
-                HintAlign = AdaptiveTextAlign.Left,
-              },
-              new AdaptiveText()
-              {
-                Text = "Status: " + connectorViewModel.CurrentStatus.State.ToString(),
-                HintStyle = AdaptiveTextStyle.Body,
-              },
               new AdaptiveGroup()
               {
                 Children =
@@ -108,18 +97,36 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
                         HintAlign = AdaptiveImageAlign.Center,
                       },
                     },
+                    HintWeight = 1,
+                  },
+                  new AdaptiveSubgroup()
+                  {
+                    Children =
+                    {
+                      new AdaptiveText()
+                      {
+                        Text = "Status: " + connectorViewModel.CurrentStatus.State.ToString(),
+                        HintStyle = AdaptiveTextStyle.Body,
+                      },
+                    },
+                    HintWeight = 10,
                   },
                 },
+              },
+              new AdaptiveText()
+              {
+                Text = connectorViewModel.Name,
+                HintStyle = AdaptiveTextStyle.Header,
+                HintAlign = AdaptiveTextAlign.Left,
+                HintWrap = true,
               },
             },
           },
         },
       };
 
-
       return content;
     }
-
 
     public ToastContent GenerateToastContent(ConnectorViewModel connectorViewModel = null)
     {
