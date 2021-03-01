@@ -193,6 +193,15 @@ namespace Soloplan.WhatsON.GUI.Configuration.Wizard
     }
 
     /// <summary>
+    /// Decides if a tooltip should be visible.
+    /// </summary>
+    /// <returns>True when should be visible, false when should not be visible.</returns>
+    public bool ShouldDisplayTooltip()
+    {
+      return (this.Description == string.Empty || this.Description == null) ? false : true;
+    }
+
+    /// <summary>
     /// Called when property was changed.
     /// </summary>
     /// <param name="propertyName">Name of the property.</param>

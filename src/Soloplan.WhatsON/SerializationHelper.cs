@@ -9,10 +9,10 @@ namespace Soloplan.WhatsON
 {
   using System;
   using System.Collections.Generic;
-  using System.Diagnostics;
   using System.IO;
   using System.Linq;
   using System.Net;
+  using System.Reflection;
   using System.Threading;
   using System.Threading.Tasks;
   using Newtonsoft.Json;
@@ -26,36 +26,50 @@ namespace Soloplan.WhatsON
   public sealed class SerializationHelper
   {
     /// <summary>
-    /// The  <see cref="Lazy{T}"/> instance for the singleton.
-    /// </summary>
-    static readonly Lazy<SerializationHelper> lazy = new Lazy<SerializationHelper>(() => new SerializationHelper());
-
-    /// <summary>
-    /// The instance of the <see cref="SerializationHelper"/>.
-    /// </summary>
-    public static SerializationHelper Instance => lazy.Value;
-
-    /// <summary>
     /// The configuration file extension.
     /// </summary>
-    public readonly string ConfigFileExtension = "json";
-
-    /// <summary>
-    /// The configuration folder path, without the back slash.
-    /// </summary>
-    public string ConfigFolder;
-
-    public string ConfigFile => this.ConfigFolder + "\\configuration." + this.ConfigFileExtension;
-
-    public SerializationHelper()
-    {
-      this.ConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\WhatsOn";
-    }
+    public const string ConfigFileExtension = "json";
 
     /// <summary>
     /// Logger instance used by this class.
     /// </summary>
     private static readonly Logger log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType?.ToString());
+
+    /// <summary>
+    /// The  <see cref="Lazy{T}"/> instance for the singleton.
+    /// </summary>
+    private static readonly Lazy<SerializationHelper> lazy = new Lazy<SerializationHelper>(() => new SerializationHelper());
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SerializationHelper"/> class.
+    /// </summary>
+    public SerializationHelper()
+    {
+      var localFolder = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      var localConfigFolder = localFolder != null ? Path.Combine(localFolder, "config") : null;
+      var appDataConfigFolder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\WhatsOn";
+
+      // prefer local configuration if present over the configuration in the appdata
+      this.ConfigFolder = localConfigFolder != null && Directory.Exists(localConfigFolder) ? localConfigFolder : appDataConfigFolder;
+    }
+
+    /// <summary>
+    /// Gets the instance of the <see cref="SerializationHelper"/>.
+    /// </summary>
+    public static SerializationHelper Instance => lazy.Value;
+
+    /// <summary>
+    /// Gets the configuration folder path, without the back slash.
+    /// </summary>
+    public string ConfigFolder { get; private set; }
+
+    public string ConfigFile => this.ConfigFolder + "\\configuration." + ConfigFileExtension;
+
+    public static T Load<T>(string file)
+    {
+      var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
+      return JsonConvert.DeserializeObject<T>(File.ReadAllText(file), settings);
+    }
 
     /// <summary>
     /// Saves the configuration to specified file.
@@ -78,16 +92,10 @@ namespace Soloplan.WhatsON
       log.Debug("Configuration saved.");
     }
 
-    public static T Load<T>(string file)
-    {
-      var settings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.Auto };
-      return JsonConvert.DeserializeObject<T>(File.ReadAllText(file), settings);
-    }
-
     public ApplicationConfiguration LoadConfiguration()
     {
-      log.Debug("Loading configuration form file {file}", ConfigFile);
-      var result = Load<ApplicationConfiguration>(ConfigFile);
+      log.Debug("Loading configuration form file {file}", this.ConfigFile);
+      var result = Load<ApplicationConfiguration>(this.ConfigFile);
       this.HandleConfigurationErrors(result);
       return result;
     }
@@ -129,10 +137,10 @@ namespace Soloplan.WhatsON
     {
       if (File.Exists(this.ConfigFile))
       {
-        return LoadConfiguration();
+        return this.LoadConfiguration();
       }
 
-      log.Debug("Configuration file {file} doesn't exist. Create new default configuration.", ConfigFile);
+      log.Debug("Configuration file {file} doesn't exist. Create new default configuration.", this.ConfigFile);
       return new ApplicationConfiguration();
     }
 
@@ -146,7 +154,7 @@ namespace Soloplan.WhatsON
     {
       if (configFilePath == null)
       {
-        var configFileDirecory = Path.GetDirectoryName(ConfigFile);
+        var configFileDirecory = Path.GetDirectoryName(this.ConfigFile);
         if (configFileDirecory == null)
         {
           throw new InvalidOperationException("Couldn't get the directory for configuration file.");
@@ -155,7 +163,7 @@ namespace Soloplan.WhatsON
         Directory.CreateDirectory(configFileDirecory);
       }
 
-      Save(configuration, configFilePath ?? ConfigFile);
+      this.Save(configuration, configFilePath ?? this.ConfigFile);
     }
 
     public async Task<TModel> GetJsonModel<TModel>(string requestUrl, CancellationToken token = default(CancellationToken), Action<WebRequest> requestCallback = null)
@@ -212,7 +220,7 @@ namespace Soloplan.WhatsON
         }
 
         log.Error($"Could not fetch JSON data from {requestUrl}.", ex);
-        return null;
+        throw ex;
       }
     }
 

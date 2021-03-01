@@ -29,6 +29,7 @@
           </TextBlock.Text>
         </TextBlock>
         <TextBlock Name="EstimatedRemainingText" Text=" estimated remaining" />
+        <TextBlock><LineBreak/></TextBlock> 
       </StackPanel>
     </StackPanel>
     <StackPanel Orientation="Horizontal" Visibility="{Binding BuildingLongerThenExpected, Converter={StaticResource BoolToVisibility}}">
@@ -42,7 +43,8 @@
           </MultiBinding>
         </TextBlock.Text>
       </TextBlock>
-      <TextBlock Text=" longer than estimated." />
+      <TextBlock Text=" longer than estimated." />    
+      <TextBlock><LineBreak/></TextBlock>  
     </StackPanel>
   </StackPanel>
 </UserControl>

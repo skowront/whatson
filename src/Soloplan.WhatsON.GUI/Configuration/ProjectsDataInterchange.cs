@@ -1,6 +1,7 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
 // <copyright file="ProjectsDataInterchange.cs" company="Soloplan GmbH">
-//   Copyright (c) Soloplan GmbH. All rights reserved.
+//  Copyright (c) Soloplan GmbH. All rights reserved.
+//  Licensed under the MIT License. See License-file in the project root for license information.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -85,7 +86,7 @@ namespace Soloplan.WhatsON.GUI.Configuration
 
     private string GetProjectsInterchangeFileFilter()
     {
-      return $"{Properties.Resources.JsonFilesFilterName}|*.{SerializationHelper.Instance.ConfigFileExtension}";
+      return $"{Properties.Resources.JsonFilesFilterName}|*.{SerializationHelper.ConfigFileExtension}";
     }
 
     /// <summary>

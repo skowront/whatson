@@ -7,11 +7,13 @@
 
 namespace Soloplan.WhatsON.CruiseControl
 {
+  using System;
   using System.Collections.Generic;
   using System.Linq;
   using System.Threading.Tasks;
   using Soloplan.WhatsON.Composition;
   using Soloplan.WhatsON.Configuration;
+  using Soloplan.WhatsON.CruiseControl.Model;
   using Soloplan.WhatsON.Model;
 
   public class CruiseControlPlugin : ConnectorPlugin
@@ -21,7 +23,7 @@ namespace Soloplan.WhatsON.CruiseControl
     {
     }
 
-    public override Connector CreateNew(ConnectorConfiguration configuration)
+    public override Connector CreateNew(ConnectorConfiguration configuration, bool? checkRedirect = null)
     {
       return new CruiseControlConnector(configuration);
     }
@@ -37,11 +39,25 @@ namespace Soloplan.WhatsON.CruiseControl
     {
       var result = new List<Project>();
       var server = CruiseControlManager.GetServer(address, false);
-      var allProjects = await server.GetAllProjects();
+      CruiseControlJobs allProjects = null;
+      try
+      {
+        allProjects = await server.GetAllProjects();
+      }
+      catch (Exception ex)
+      {
+        throw ex;
+      }
+
+      if (allProjects == null)
+      {
+        throw new Exception();
+      }
+
       var serverProjects = new List<Project>();
       foreach (var project in allProjects.CruiseControlProject)
       {
-        var serverProjectTreeItem = new Project(address, project.Name, address + "server/" + project.ServerName + "/project/" + project.Name + "/ViewProjectReport.aspx"); ;
+        var serverProjectTreeItem = new Project(address, project.Name, address + "server/" + project.ServerName + "/project/" + project.Name + "/ViewProjectReport.aspx");
         if (string.IsNullOrWhiteSpace(project.ServerName))
         {
           result.Add(serverProjectTreeItem);
@@ -51,7 +67,7 @@ namespace Soloplan.WhatsON.CruiseControl
           var serverProject = serverProjects.FirstOrDefault(s => s.Name == project.ServerName);
           if (serverProject == null)
           {
-            serverProject = new Project(null, project.ServerName, address+"server/"+project.ServerName+"/viewServerReport.aspx", project.Name, address + "server/" + project.ServerName + "/project/" + project.Name);
+            serverProject = new Project(null, project.ServerName, address + "server/" + project.ServerName + "/viewServerReport.aspx", project.Name, address + "server/" + project.ServerName + "/project/" + project.Name);
             serverProjects.Add(serverProject);
             result.Add(serverProject);
           }
@@ -70,7 +86,7 @@ namespace Soloplan.WhatsON.CruiseControl
     /// <param name="project">The server project.</param>
     /// <param name="configurationItemsSupport">The configuration items provider.</param>
     /// <param name="serverAddress">The server address.</param>
-    public override void Configure(Project project, IConfigurationItemProvider configurationItemsSupport, string serverAddress=null)
+    public override void Configure(Project project, IConfigurationItemProvider configurationItemsSupport, string serverAddress = null)
     {
       configurationItemsSupport.GetConfigurationByKey(Connector.ProjectName).Value = project.Name;
       configurationItemsSupport.GetConfigurationByKey(Connector.ServerAddress).Value = project.Address;

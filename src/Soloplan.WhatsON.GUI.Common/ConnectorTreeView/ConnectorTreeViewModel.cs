@@ -10,9 +10,7 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
   using System.Collections.Generic;
   using System.Collections.ObjectModel;
   using System.Linq;
-  using System.Text.RegularExpressions;
   using System.Windows;
-  using System.Windows.Controls;
   using System.Windows.Input;
   using GongSolutions.Wpf.DragDrop;
   using NLog;
@@ -197,7 +195,6 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
     /// <param name="dropInfo">Information about the drop.</param>
     public void Drop(IDropInfo dropInfo)
     {
-
       if (dropInfo.Effects != DragDropEffects.Move)
       {
         log.Warn("Unexpected drop operation. {data}", new { Effect = dropInfo.Effects, dropInfo.Data, Target = dropInfo.TargetItem });
@@ -213,29 +210,41 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
       {
         if (this.connectorsToDrop.Count != 0)
         {
-          if (dropInfo.InsertPosition == GongSolutions.Wpf.DragDrop.RelativeInsertPosition.BeforeTargetItem)
+          changesExist = this.DropConnector(dropInfo, draggedConnector);
+          bool found = false;
+          foreach (var connector in this.connectorsToDrop)
           {
-            var targetGroup = this.GetConnectorGroup((ConnectorViewModel)dropInfo.TargetItem);
-            foreach (var element in this.connectorsToDrop.Reverse())
+            if (draggedConnector.Identifier == connector.Identifier)
             {
-              var sourceGroup = this.GetConnectorGroup(element);
-              MoveObject(sourceGroup, targetGroup, dropInfo.InsertPosition);
-              targetGroup = this.GetConnectorGroup(element);
+              found = true;
             }
           }
-          else
+
+          if (found == true)
           {
-            var targetGroup = this.GetConnectorGroup((ConnectorViewModel)dropInfo.TargetItem);
-            foreach (var element in this.connectorsToDrop)
+            if (dropInfo.InsertPosition == GongSolutions.Wpf.DragDrop.RelativeInsertPosition.BeforeTargetItem)
             {
-              var sourceGroup = this.GetConnectorGroup(element);
-              MoveObject(sourceGroup, targetGroup, dropInfo.InsertPosition);
-              targetGroup = this.GetConnectorGroup(element);
+              var targetGroup = this.GetConnectorGroup((ConnectorViewModel)dropInfo.TargetItem);
+              foreach (var element in this.connectorsToDrop.Reverse())
+              {
+                var sourceGroup = this.GetConnectorGroup(element);
+                MoveObject(sourceGroup, targetGroup, dropInfo.InsertPosition);
+                targetGroup = this.GetConnectorGroup(element);
+              }
+            }
+            else
+            {
+              var targetGroup = this.GetConnectorGroup((ConnectorViewModel)dropInfo.TargetItem);
+              foreach (var element in this.connectorsToDrop)
+              {
+                var sourceGroup = this.GetConnectorGroup(element);
+                MoveObject(sourceGroup, targetGroup, dropInfo.InsertPosition);
+                targetGroup = this.GetConnectorGroup(element);
+              }
             }
           }
 
           this.connectorsToDrop = new Collection<ConnectorViewModel>();
-          this.OnConfigurationChanged(this, EventArgs.Empty);
         }
         else
         {
@@ -424,6 +433,61 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
       return model;
     }
 
+    public bool UpdateConnectorsToDrop(Collection<ConnectorViewModel> list)
+    {
+      this.connectorsToDrop = list;
+      return true;
+    }
+
+    public async void DeleteGroup(object sender, DeleteTreeItemEventArgs e)
+    {
+      if (e.DeleteItem is ConnectorViewModel clickedConnector)
+      {
+        if (this.selectedConnectors.Count > 1)
+        {
+          e.NoOtherSelections = false;
+        }
+        else
+        {
+          e.NoOtherSelections = true;
+        }
+
+        this.DeleteItem?.Invoke(sender, e);
+        var canceled = await e.CheckCanceled();
+        if (!canceled)
+        {
+          if (this.selectedConnectors.Count == 0)
+          {
+            this.DeleteConnector(clickedConnector);
+            return;
+          }
+
+          this.DeleteSelectedConnectors();
+        }
+
+        return;
+      }
+
+      this.DeleteItem?.Invoke(sender, e);
+      if (e.DeleteItem is ConnectorGroupViewModel group)
+      {
+        var canceled = await e.CheckCanceled();
+        if (!canceled && this.ConnectorGroups.Remove(group))
+        {
+          this.OnConfigurationChanged(this, EventArgs.Empty);
+          this.FireOneGroupChanged();
+        }
+      }
+    }
+
+    /// <summary>
+    /// Updates the currently selected items form view.
+    /// </summary>
+    public void UpdateSelectedConnectors(Collection<ConnectorViewModel> selectedConnectors)
+    {
+      this.selectedConnectors = selectedConnectors;
+    }
+
     /// <summary>
     /// Calls <see cref="ConfigurationChanged"/> event.
     /// </summary>
@@ -442,13 +506,6 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
         this.configurationChanging = false;
       }
     }
-
-    public bool UpdateConnectorsToDrop(Collection<ConnectorViewModel> list)
-    {
-      this.connectorsToDrop = list;
-      return true;
-    }
-
 
     /// <summary>
     /// Moves object given by <paramref name="source"/> to <paramref name="target"/>.
@@ -680,47 +737,6 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
       }
     }
 
-    public async void DeleteGroup(object sender, DeleteTreeItemEventArgs e)
-    {
-      if (e.DeleteItem is ConnectorViewModel clickedConnector)
-      {
-        if (this.selectedConnectors.Count > 1)
-        {
-          e.NoOtherSelections = false;
-        }
-        else
-        {
-          e.NoOtherSelections = true;
-        }
-
-        this.DeleteItem?.Invoke(sender, e);
-        var canceled = await e.CheckCanceled();
-        if (!canceled)
-        {
-          if (selectedConnectors.Count == 0)
-          {
-            this.DeleteConnector(clickedConnector);
-            return;
-          }
-
-          this.DeleteSelectedConnectors();
-        }
-
-        return;
-      }
-
-      this.DeleteItem?.Invoke(sender, e);
-      if (e.DeleteItem is ConnectorGroupViewModel group)
-      {
-        var canceled = await e.CheckCanceled();
-        if (!canceled && this.ConnectorGroups.Remove(group))
-        {
-          this.OnConfigurationChanged(this, EventArgs.Empty);
-          this.FireOneGroupChanged();
-        }
-      }
-    }
-
     private void FireOneGroupChanged()
     {
       if (this.OneGroup != this.prevOneGroupValue)
@@ -740,14 +756,6 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
       {
         connectorGroupViewModel.ConfigurationModifiedInTree = value;
       }
-    }
-
-    /// <summary>
-    /// Updates the currently selected items form view
-    /// </summary>
-    public void UpdateSelectedConnectors(Collection<ConnectorViewModel> selectedConnectors)
-    {
-      this.selectedConnectors = selectedConnectors;
     }
 
     /// <summary>

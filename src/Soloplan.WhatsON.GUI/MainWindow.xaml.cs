@@ -9,7 +9,6 @@ namespace Soloplan.WhatsON.GUI
 {
   using System;
   using System.Collections.Generic;
-  using System.Collections.ObjectModel;
   using System.ComponentModel;
   using System.Linq;
   using System.Threading.Tasks;
@@ -161,15 +160,6 @@ namespace Soloplan.WhatsON.GUI
     {
       this.mainTreeView.Init(this.scheduler, this.config, this.initialConnectorState);
       this.mainTreeView.ApplyTreeListSettings(this.settings.TreeListSettings);
-    }
-
-    /// <summary>
-    /// Focuses the node connected with <paramref name="connector"/>.
-    /// </summary>
-    /// <param name="connector">Connector which should be focused.</param>
-    public void FocusConnector(Connector connector)
-    {
-      this.mainTreeView.FocusItem(connector);
     }
 
     /// <summary>Raises the <see cref="E:System.Windows.Window.Closed" /> event. Performs necessry cleanup.</summary>

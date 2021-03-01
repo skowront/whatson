@@ -1,0 +1,45 @@
+﻿<UserControl x:Class="Soloplan.WhatsON.GUI.Common.BuildServer.ProgressBarControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:Soloplan.WhatsON.GUI.Common.BuildServer"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             d:DataContext="{d:DesignInstance local:BuildStatusViewModel}"
+             d:DesignHeight="450"
+             d:DesignWidth="800"
+             mc:Ignorable="d">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+  </UserControl.Resources>
+  <StackPanel Orientation="{Binding ControlOrientation, RelativeSource={RelativeSource AncestorType=local:ProgressBarTooltipControl}}">
+    <StackPanel Orientation="{Binding ControlOrientation, RelativeSource={RelativeSource AncestorType=local:ProgressBarTooltipControl}}" Visibility="{Binding BuildingNoLongerThenExpected, Converter={StaticResource BoolToVisibility}}">
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="{Binding Progress}" />
+        <TextBlock x:Name="PercentSignText" Text="% - " />
+        <TextBlock>
+          <TextBlock.Text>
+            <MultiBinding StringFormat="{}{0:00}:{1:00}:{2:00}">
+              <Binding Path="EstimatedRemaining.Hours" />
+              <Binding Path="EstimatedRemaining.Minutes" />
+              <Binding Path="EstimatedRemaining.Seconds" />
+            </MultiBinding>
+          </TextBlock.Text>
+        </TextBlock>
+        <TextBlock Name="EstimatedRemainingText" Text=" estimated remaining" />
+      </StackPanel>
+    </StackPanel>
+    <StackPanel Orientation="Horizontal" Visibility="{Binding BuildingLongerThenExpected, Converter={StaticResource BoolToVisibility}}">
+      <TextBlock Text="Taking " />
+      <TextBlock>
+        <TextBlock.Text>
+          <MultiBinding StringFormat="{}{0:00}:{1:00}:{2:00}">
+            <Binding Path="BuildTimeExcedingEstimation.Hours" />
+            <Binding Path="BuildTimeExcedingEstimation.Minutes" />
+            <Binding Path="BuildTimeExcedingEstimation.Seconds" />
+          </MultiBinding>
+        </TextBlock.Text>
+      </TextBlock>
+      <TextBlock Text=" longer than estimated." />    
+    </StackPanel>
+  </StackPanel>
+</UserControl>

@@ -28,6 +28,9 @@ namespace Soloplan.WhatsON.GUI.Configuration.Wizard
     {
       this.wizardController = wizardController;
       this.InitializeComponent();
+      this.DataContext = this;
+      this.AutoDetectionCheckbox.DataContext = this.wizardController;
+
       this.AddressComboBox.Loaded += (s, e) =>
       {
         if (this.AddressComboBox.Items.Count > 0)

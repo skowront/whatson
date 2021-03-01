@@ -9,8 +9,6 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
 {
   using System;
   using System.Collections.Generic;
-  using System.Runtime.CompilerServices;
-  using System.ServiceModel.Configuration;
   using System.Threading.Tasks;
   using System.Windows.Input;
 
@@ -18,7 +16,7 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
   {
     private bool isNodeExpanded;
 
-    public bool isOnlyOneSelected = true;
+    private bool isOnlyOneSelected = true;
 
     /// <summary>
     /// Backing field for <see cref="EditCommand"/>.
@@ -72,6 +70,19 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
       }
     }
 
+    public bool IsOnlyOneSelected
+    {
+      get => this.isOnlyOneSelected;
+      set
+      {
+        if (this.isOnlyOneSelected != value)
+        {
+          this.isOnlyOneSelected = value;
+          this.OnPropertyChanged();
+        }
+      }
+    }
+
     /// <summary>
     /// Gets command for editing tree item.
     /// </summary>
@@ -90,7 +101,7 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
     public virtual CustomCommand ExportCommand => this.exportCommand ?? (this.exportCommand = this.CreateExportCommand());
 
     /// <summary>
-    /// Gets or sets a value indicating whether configuration was modified from main window.s
+    /// Gets or sets a value indicating whether configuration was modified from main window.
     /// </summary>
     public virtual bool ConfigurationModifiedInTree
     {
@@ -122,7 +133,7 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
     /// <param name="eventArgs">Arguments containing data about edited item.</param>
     protected virtual void OnEditItem(object sender, EditTreeItemViewModelEventArgs eventArgs)
     {
-      if (this.isOnlyOneSelected == false)
+      if (this.IsOnlyOneSelected == false)
       {
         return;
       }
@@ -158,15 +169,15 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
     {
       var command = new CustomCommand();
       command.OnExecute += (s, e) => this.OnEditItem(this, new EditTreeItemViewModelEventArgs { Model = this, EditType = EditType.Edit });
-      command.CanExecuteExternal += (s, e) => { e.Cancel = !this.isOnlyOneSelected; };
+      command.CanExecuteExternal += (s, e) => { e.Cancel = !this.IsOnlyOneSelected; };
       return command;
     }
 
     protected virtual CustomCommand CreateRenameCommand()
     {
       var command = new CustomCommand();
-      command.OnExecute += (s,e )=> this.OnEditItem(this, new EditTreeItemViewModelEventArgs { Model = this, EditType = EditType.Rename });
-      command.CanExecuteExternal += (s, e) => { e.Cancel = !this.isOnlyOneSelected; };
+      command.OnExecute += (s, e) => this.OnEditItem(this, new EditTreeItemViewModelEventArgs { Model = this, EditType = EditType.Rename });
+      command.CanExecuteExternal += (s, e) => { e.Cancel = !this.IsOnlyOneSelected; };
       return command;
     }
 
@@ -178,7 +189,7 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
     {
       var command = new CustomCommand();
       command.OnExecute += (s, e) => this.OnExportItem(this, new ValueEventArgs<TreeItemViewModel>(this));
-      command.CanExecuteExternal += (s, e) => { e.Cancel = !this.isOnlyOneSelected; };
+      command.CanExecuteExternal += (s, e) => { e.Cancel = !this.IsOnlyOneSelected; };
       return command;
     }
 
@@ -237,21 +248,21 @@ namespace Soloplan.WhatsON.GUI.Common.ConnectorTreeView
     private bool noOtherSelection = true;
 
     /// <summary>
-    /// Gets or sets a value indicating whether there are no other selected connectots.
-    /// </summary>
-    public bool NoOtherSelections
-    {
-      get { return noOtherSelection; }
-      set { noOtherSelection = value; }
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="DeleteTreeItemEventArgs"/> class.
     /// </summary>
     /// <param name="deleteItem">The item about to be deleted.</param>
     public DeleteTreeItemEventArgs(TreeItemViewModel deleteItem)
     {
       this.DeleteItem = deleteItem;
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether there are no other selected connectots.
+    /// </summary>
+    public bool NoOtherSelections
+    {
+      get { return this.noOtherSelection; }
+      set { this.noOtherSelection = value; }
     }
 
     /// <summary>

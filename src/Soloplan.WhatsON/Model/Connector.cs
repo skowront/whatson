@@ -7,8 +7,10 @@
 
 namespace Soloplan.WhatsON.Model
 {
+  using System;
   using System.Collections.Generic;
   using System.Linq;
+  using System.Net;
   using System.Text;
   using System.Threading;
   using System.Threading.Tasks;
@@ -22,7 +24,7 @@ namespace Soloplan.WhatsON.Model
   [ConfigurationItem(Category, typeof(string), Priority = 1000000000)]
   [ConfigurationItem(ServerAddress, typeof(string), Optional = false, Priority = 100)]
   [ConfigurationItem(ProjectName, typeof(string), Optional = false, Priority = 300)]
-  [ConfigurationItem(DirectAddress, typeof(string),Optional = true, Priority = 0)]
+  [ConfigurationItem(DirectAddress, typeof(string), Optional = true, Priority = 0)]
   public abstract class Connector
   {
     /// <summary>
@@ -127,6 +129,46 @@ namespace Soloplan.WhatsON.Model
       this.Snapshots.Sort((x, y) => x.Age.CompareTo(y.Age));
     }
 
+    public virtual async Task<bool> IsReachableUrl(string urlInput)
+    {
+      var url = urlInput;
+      bool testStatus;
+      WebRequest request = WebRequest.Create(url);
+      request.Timeout = 50; // in ms.
+      try
+      {
+        using (WebResponse response = await request.GetResponseAsync())
+        {
+          testStatus = true;
+          response.Close();
+        }
+      }
+      catch (Exception)
+      {
+        testStatus = false;
+      }
+
+      return testStatus;
+    }
+
+    /// <summary>
+    /// Checks correctness of self server URL.
+    /// </summary>
+    /// <returns>true when fine, false when url is broken.</returns>
+    public virtual async Task<bool> CheckServerURL()
+    {
+      return false;
+    }
+
+    /// <summary>
+    /// Checks correctness of self project URL.
+    /// </summary>
+    /// <returns>true when fine, false when url is broken.</returns>
+    public virtual async Task<bool> CheckProjectURL()
+    {
+      return false;
+    }
+
     public override string ToString()
     {
       var sb = new StringBuilder(this.Configuration.Name);
@@ -174,7 +216,7 @@ namespace Soloplan.WhatsON.Model
     {
       log.Trace("Checking if snapshot should be taken...");
 
-      if (status != null && status.State != ObservationState.Running && this.Snapshots.All(x => x.Status.BuildNumber != status.BuildNumber))
+      if (status != null && status.State != ObservationState.Running && this.Snapshots.All(x => x.Status.BuildNumber != status.BuildNumber) && status.InvalidBuild == false)
       {
         log.Debug("Snapshot should be taken. {stat}", new { CurrentStatus = status });
         return true;

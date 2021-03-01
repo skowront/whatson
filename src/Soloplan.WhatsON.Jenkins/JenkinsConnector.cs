@@ -27,9 +27,9 @@ namespace Soloplan.WhatsON.Jenkins
 
     public const string ConnectorDisplayName = "Jenkins";
 
-        /// <summary>
-        /// The redirect plugin tag.
-        /// </summary>
+    /// <summary>
+    /// The redirect plugin tag.
+    /// </summary>
     public const string RedirectPlugin = "RedirectPlugin";
 
     private const long TicksInMillisecond = 10000;
@@ -57,6 +57,24 @@ namespace Soloplan.WhatsON.Jenkins
 
     private JenkinsStatus PreviousCheckStatus { get; set; }
 
+    /// <summary>
+    /// Checks correctness of self server URL.
+    /// </summary>
+    /// <returns>true when fine, false when url is broken.</returns>
+    public override async Task<bool> CheckServerURL()
+    {
+      return await this.IsReachableUrl(this.Address);
+    }
+
+    /// <summary>
+    /// Checks correctness of self project URL.
+    /// </summary>
+    /// <returns>true when fine, false when url is broken.</returns>
+    public override async Task<bool> CheckProjectURL()
+    {
+      return await this.IsReachableUrl(JenkinsApi.UrlHelper.ProjectUrl(this));
+    }
+
     protected override async Task ExecuteQuery(CancellationToken cancellationToken)
     {
       await base.ExecuteQuery(cancellationToken);
@@ -68,7 +86,7 @@ namespace Soloplan.WhatsON.Jenkins
           return;
         }
 
-        log.Error($"It was necessary to reevaluate history of jenkins job {Configuration.GetConfigurationByKey(Connector.Category)?.Value?.Trim()} / {Configuration.Name}, prev build number {this.PreviousCheckStatus.BuildNumber}, current build number {currentStatus.BuildNumber}");
+        log.Error($"It was necessary to reevaluate history of jenkins job {this.Configuration.GetConfigurationByKey(Connector.Category)?.Value?.Trim()} / {this.Configuration.Name}, prev build number {this.PreviousCheckStatus.BuildNumber}, current build number {currentStatus.BuildNumber}");
         for (var i = currentStatus.BuildNumber - 1; i > this.PreviousCheckStatus.BuildNumber; i--)
         {
           var build = await this.api.GetJenkinsBuild(this, i, cancellationToken);
@@ -85,9 +103,38 @@ namespace Soloplan.WhatsON.Jenkins
     protected override async Task<Status> GetCurrentStatus(CancellationToken cancellationToken)
     {
       var job = await this.api.GetJenkinsJob(this, cancellationToken);
+      if (job == null)
+      {
+        if (await this.CheckServerURL() == false)
+        {
+          var status = new Status();
+          status.ErrorMessage = "Server not available";
+          status.InvalidBuild = true;
+          return status;
+        }
+
+        if (await this.CheckProjectURL() == false)
+        {
+          var status = new Status();
+          status.ErrorMessage = "Project not available";
+          status.InvalidBuild = true;
+          return status;
+        }
+      }
+
+      if (job.LastBuild == null)
+      {
+        var status = new Status();
+        status.ErrorMessage = "No builds yet";
+        status.InvalidBuild = true;
+        return status;
+      }
+
       if (job?.LastBuild?.Number == null)
       {
-        return null;
+        var status = this.CreateStatus(job.LastBuild);
+        status.ErrorMessage = "No build number";
+        return status;
       }
 
       return this.CreateStatus(job.LastBuild);
@@ -148,6 +195,7 @@ namespace Soloplan.WhatsON.Jenkins
       newStatus.EstimatedDuration = new TimeSpan(latestBuild.EstimatedDuration * TicksInMillisecond);
       newStatus.Culprits = latestBuild.Culprits;
       newStatus.Url = JenkinsApi.UrlHelper.BuildUrl(this, newStatus.BuildNumber);
+      newStatus.ErrorMessage = latestBuild.Result;
 
       newStatus.CommittedToThisBuild = latestBuild.ChangeSets?.SelectMany(p => p.ChangeSetItems)
         .Select(p => p.Author)

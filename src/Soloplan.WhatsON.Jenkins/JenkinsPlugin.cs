@@ -23,15 +23,48 @@ namespace Soloplan.WhatsON.Jenkins
     /// </summary>
     private static readonly Logger log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType?.ToString());
 
+    private static Dictionary<string, bool> blueOceanCache = new Dictionary<string, bool>();
+
     public JenkinsPlugin()
       : base(typeof(JenkinsConnector))
     {
     }
 
-    public override Connector CreateNew(ConnectorConfiguration configuration)
+    public override Connector CreateNew(ConnectorConfiguration configuration, bool? checkRedirect = null)
     {
       log.Debug("Creating new JenkinsProject based on configuration {configuration}", new { configuration.Name, configuration.Identifier });
       var jenkinsProject = new JenkinsConnector(configuration, new JenkinsApi());
+
+      if (checkRedirect == null)
+      {
+        return jenkinsProject;
+      }
+      else if (checkRedirect == false)
+      {
+        return jenkinsProject;
+      }
+
+      if (blueOceanCache.ContainsKey(jenkinsProject.Address))
+      {
+        jenkinsProject.Configuration.GetConfigurationByKey("RedirectPlugin").Value = blueOceanCache[jenkinsProject.Address].ToString();
+        configuration.GetConfigurationByKey("RedirectPlugin").Value = blueOceanCache[jenkinsProject.Address].ToString();
+        return jenkinsProject;
+      }
+
+      var task = Task.Run(async () => await jenkinsProject.IsReachableUrl(JenkinsApi.UrlHelper.ProjectUrl(jenkinsProject) + JenkinsApi.UrlHelper.RedirectPluginUrlSuffix));
+      task.Wait();
+      var result = task.Result;
+      if (result == true)
+      {
+        jenkinsProject.Configuration.GetConfigurationByKey("RedirectPlugin").Value = "True";
+        configuration.GetConfigurationByKey("RedirectPlugin").Value = "True";
+        blueOceanCache.Add(jenkinsProject.Address, true);
+      }
+      else
+      {
+        blueOceanCache.Add(jenkinsProject.Address, false);
+      }
+
       return jenkinsProject;
     }
 
@@ -46,7 +79,15 @@ namespace Soloplan.WhatsON.Jenkins
     {
       var api = new JenkinsApi();
       var serverProjects = new List<Project>();
-      await this.GetProjectsLists(address, serverProjects, api);
+      try
+      {
+        await this.GetProjectsLists(address, serverProjects, api);
+      }
+      catch (Exception ex)
+      {
+        throw ex;
+      }
+
       return serverProjects;
     }
 
@@ -84,7 +125,21 @@ namespace Soloplan.WhatsON.Jenkins
     /// <returns>A task representing the job.</returns>
     private async Task GetProjectsLists(string address, IList<Project> projects, JenkinsApi jenkinsApi)
     {
-      var jenkinsJobs = await jenkinsApi.GetJenkinsJobs(address, default);
+      JenkinsJobs jenkinsJobs;
+      try
+      {
+        jenkinsJobs = await jenkinsApi.GetJenkinsJobs(address, default);
+      }
+      catch (Exception ex)
+      {
+        throw ex;
+      }
+
+      if (jenkinsJobs == null)
+      {
+        return;
+      }
+
       if (jenkinsJobs?.Jobs == null)
       {
         return;
